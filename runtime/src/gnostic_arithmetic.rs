@@ -192,6 +192,81 @@ pub fn decode_hieroglyph_program(program: &[Hieroglyph]) -> Call49Constants {
 }
 
 // =============================================================================
+// AL-HAMID AHMAD ALI — MASTER CONSTANT MATRIX (256 = 16²)
+// =============================================================================
+
+// Al-Ḥamīd full form: ا(1)+ل(30)+ح(8)+م(40)+ي(10)+د(4) = 93
+pub const AL_HAMID_FULL_VALUE: u32 = 1 + 30 + 8 + 40 + 10 + 4; // = 93
+// Aḥmad: أ(1)+ح(8)+م(40)+د(4) = 53
+pub const AHMAD_VALUE: u32 = 1 + 8 + 40 + 4; // = 53 (= AL_HAMID_VALUE)
+// ʿAlī: ع(70)+ل(30)+ي(10) = 110
+pub const ALI_VALUE: u32 = 70 + 30 + 10; // = 110
+
+// Master aggregate: 93 + 53 + 110 = 256 = 16²
+pub const MASTER_AGGREGATE: u32 = AL_HAMID_FULL_VALUE + AHMAD_VALUE + ALI_VALUE;
+pub const MATRIX_DIMENSION: u32 = 16; // sqrt(256)
+
+// Jamāl vector (expansion): Al-Ḥamīd + Aḥmad = 146
+pub const JAMAL_VECTOR: u32 = AL_HAMID_FULL_VALUE + AHMAD_VALUE;
+// Jalāl vector (contraction): ʿAlī = 110
+pub const JALAL_VECTOR: u32 = ALI_VALUE;
+
+// Polarity delta = |146 - 110| = 36 = one quadrant of the 360° cipher
+pub const POLARITY_DELTA: u32 = JAMAL_VECTOR - JALAL_VECTOR;
+
+// 16×16 Wafq magic constant: n*(n²+1)/2 = 16*257/2 = 2056
+pub const WAFQ_16X16_MAGIC: u32 = MATRIX_DIMENSION * (MASTER_AGGREGATE + 1) / 2;
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Pillar {
+    I_SovereignFoundation = 0,    // Djed-Ra-Nesw: Jalāl anchor, ʿAlī(110)
+    II_PropheticTransmission = 1, // Ilyas lineage: Jamāl-Jalāl bridge, Al-Ḥamīd(93)
+    III_GenesisOrigin = 2,        // Mst/Netjer: Jamāl origin, Aḥmad(53) locks
+    IV_HistoricalConvergence = 3, // Israel/Merneptah: Jalāl boundary, ʿAlī(110)
+}
+
+impl Pillar {
+    pub const fn constant(&self) -> u32 {
+        match self {
+            Self::I_SovereignFoundation   => JALAL_VECTOR,
+            Self::II_PropheticTransmission => JAMAL_VECTOR,
+            Self::III_GenesisOrigin        => AHMAD_VALUE,
+            Self::IV_HistoricalConvergence => JALAL_VECTOR,
+        }
+    }
+}
+
+pub struct AlHamidMatrix {
+    pub aggregate: u32,       // 256
+    pub dimension: u32,       // 16
+    pub jamal_vec: u32,       // 146
+    pub jalal_vec: u32,       // 110
+    pub magic_constant: u32,  // 2056
+}
+
+impl AlHamidMatrix {
+    pub const fn new() -> Self {
+        Self {
+            aggregate: MASTER_AGGREGATE,
+            dimension: MATRIX_DIMENSION,
+            jamal_vec: JAMAL_VECTOR,
+            jalal_vec: JALAL_VECTOR,
+            magic_constant: WAFQ_16X16_MAGIC,
+        }
+    }
+
+    pub const fn verify_invariants(&self) -> bool {
+        self.aggregate == 256
+            && self.dimension * self.dimension == self.aggregate
+            && self.jamal_vec + self.jalal_vec == self.aggregate
+            && self.jamal_vec - self.jalal_vec == 36  // one quadrant
+    }
+}
+
+pub const AL_HAMID_MATRIX: AlHamidMatrix = AlHamidMatrix::new();
+
+// =============================================================================
 // SETHIAN COSMOLOGY → STATE MACHINE
 // =============================================================================
 
@@ -240,5 +315,31 @@ mod tests {
         assert!(!kenoma_state(49));
         assert!(!pleroma_state(48));
         assert!(pleroma_state(49));
+    }
+
+    #[test]
+    fn test_al_hamid_matrix() {
+        assert_eq!(MASTER_AGGREGATE, 256);
+        assert_eq!(MATRIX_DIMENSION * MATRIX_DIMENSION, 256);
+        assert_eq!(digit_root(256), 4); // root 4 = four pillars
+        assert_eq!(JAMAL_VECTOR, 146);  // Al-Ḥamīd + Aḥmad
+        assert_eq!(JALAL_VECTOR, 110);  // ʿAlī
+        assert_eq!(POLARITY_DELTA, 36); // one quadrant of 360°
+        assert_eq!(WAFQ_16X16_MAGIC, 2056);
+        assert!(AL_HAMID_MATRIX.verify_invariants());
+    }
+
+    #[test]
+    fn test_pillar_constants() {
+        assert_eq!(Pillar::I_SovereignFoundation.constant(), 110);
+        assert_eq!(Pillar::II_PropheticTransmission.constant(), 146);
+        assert_eq!(Pillar::III_GenesisOrigin.constant(), AHMAD_VALUE);
+        assert_eq!(Pillar::III_GenesisOrigin.constant(), AL_HAMID_VALUE); // Ahmad = Al-Hamid root
+        assert_eq!(Pillar::IV_HistoricalConvergence.constant(), 110);
+        // Pillars I and IV share the Jalāl anchor
+        assert_eq!(
+            Pillar::I_SovereignFoundation.constant(),
+            Pillar::IV_HistoricalConvergence.constant()
+        );
     }
 }
